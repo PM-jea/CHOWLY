@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chowly — Table-side Ordering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ============ TOP BAR ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">Chowly</span>
+      <span class="brand-tag">table-side ordering</span>
+    </div>
+    <div class="role-switch" role="tablist" aria-label="Switch role">
+      <button class="role-btn active" data-role="customer" role="tab" aria-selected="true">I'm a Customer</button>
+      <button class="role-btn" data-role="waiter" role="tab" aria-selected="false">I'm a Waiter</button>
+    </div>
+  </header>
+
+  <!-- ============ CUSTOMER: CHOOSE RESTAURANT ============ -->
+  <main id="view-choose-restaurant" class="view">
+    <section class="intro">
+      <h1>Welcome to Chowly</h1>
+      <p>Pick the restaurant you're seated at to see today's menu.</p>
+    </section>
+    <div id="restaurant-list" class="restaurant-grid"></div>
+  </main>
+
+  <!-- ============ CUSTOMER: NAME + PHONE CAPTURE ============ -->
+  <main id="view-identify" class="view hidden">
+    <section class="intro narrow">
+      <button class="back-link" data-back="view-choose-restaurant">&larr; Change restaurant</button>
+      <h1>Almost there</h1>
+      <p>Tell us who's ordering, so we can bring your order back to your table.</p>
+      <form id="identify-form" class="stack-form">
+        <label>
+          Your name
+          <input type="text" id="identify-name" required placeholder="e.g. Ada Okafor" />
+        </label>
+        <label>
+          Phone number
+          <input type="tel" id="identify-phone" required placeholder="e.g. 08012345678" />
+        </label>
+        <button type="submit" class="btn-primary">Continue to menu</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- ============ CUSTOMER: MENU + CART ============ -->
+  <main id="view-menu" class="view hidden">
+    <section class="menu-header">
+      <button class="back-link" data-back="view-identify">&larr; Back</button>
+      <h1 id="menu-restaurant-name">Menu</h1>
+      <p id="menu-restaurant-location" class="muted"></p>
+    </section>
+    <div class="menu-layout">
+      <section class="menu-list" id="menu-list" aria-label="Menu items"></section>
+      <aside class="cart" aria-label="Your order">
+        <h2>Your order</h2>
+        <div id="cart-items" class="cart-items">
+          <p class="cart-empty">Nothing added yet — tap "Add" on any item.</p>
+        </div>
+        <div class="cart-total-row">
+          <span>Total</span>
+          <span id="cart-total">₦0</span>
+        </div>
+        <button id="submit-order-btn" class="btn-primary" disabled>Place order</button>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ============ CUSTOMER: ORDER TRACKING ============ -->
+  <main id="view-tracking" class="view hidden">
+    <section class="intro narrow">
+      <h1>Order #<span id="track-order-id"></span></h1>
+      <div class="status-pill" id="track-status">Placed</div>
+      <p class="muted">Estimated waiting time: <strong id="track-wait"></strong> minutes</p>
+
+      <div class="ticket">
+        <h3>What you ordered</h3>
+        <ul id="track-items" class="ticket-items"></ul>
+        <div class="ticket-total-row">
+          <span>Total</span>
+          <span id="track-total"></span>
+        </div>
+      </div>
+
+      <div class="staff-line" id="track-staff"></div>
+
+      <div class="action-row">
+        <button id="refresh-status-btn" class="btn-secondary">Refresh status</button>
+        <button id="new-order-btn" class="btn-secondary">Start a new order</button>
+      </div>
+
+      <details class="complaint-box">
+        <summary>Something wrong with your order?</summary>
+        <form id="complaint-form" class="stack-form">
+          <label>
+            Tell us what happened
+            <textarea id="complaint-desc" required placeholder="e.g. Order took much longer than expected"></textarea>
+          </label>
+          <label>
+            Rate this order
+            <select id="complaint-rating" required>
+              <option value="">Select a rating</option>
+              <option value="1">1 — Very poor</option>
+              <option value="2">2 — Poor</option>
+              <option value="3">3 — Okay</option>
+              <option value="4">4 — Good</option>
+              <option value="5">5 — Great</option>
+            </select>
+          </label>
+          <button type="submit" class="btn-secondary">Submit complaint</button>
+        </form>
+        <p id="complaint-confirm" class="hidden confirm-msg">Thanks — your complaint has been logged against this order.</p>
+      </details>
+
+      <div class="payment-box" id="payment-box">
+        <h3>Payment</h3>
+        <p class="muted demo-flag">Demo payment only — no real money is charged.</p>
+        <div id="payment-pending">
+          <label>
+            Payment method
+            <select id="payment-method">
+              <option value="Card">Card</option>
+              <option value="Cash">Cash</option>
+              <option value="Transfer">Transfer</option>
+            </select>
+          </label>
+          <button id="pay-btn" class="btn-primary">Pay now (demo)</button>
+        </div>
+        <p id="payment-done" class="hidden confirm-msg">Payment recorded. Thanks for dining with Chowly!</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ WAITER: RESTAURANT + STAFF PICK ============ -->
+  <main id="view-waiter-login" class="view hidden">
+    <section class="intro narrow">
+      <h1>Waiter dashboard</h1>
+      <p>Select your restaurant and your name to see live orders. No password needed.</p>
+      <form id="waiter-login-form" class="stack-form">
+        <label>
+          Restaurant
+          <select id="waiter-restaurant" required></select>
+        </label>
+        <label>
+          You are
+          <select id="waiter-name" required></select>
+        </label>
+        <button type="submit" class="btn-primary">Open dashboard</button>
+      </form>
+    </section>
+  </main>
+
+  <!-- ============ WAITER: ORDER RAIL ============ -->
+  <main id="view-waiter-dashboard" class="view hidden">
+    <section class="menu-header">
+      <button class="back-link" data-back="view-waiter-login">&larr; Switch waiter</button>
+      <h1>Orders — <span id="waiter-dash-restaurant"></span></h1>
+      <p class="muted">Logged in as <span id="waiter-dash-name"></span></p>
+      <button id="waiter-refresh-btn" class="btn-secondary">Refresh</button>
+    </section>
+
+    <div class="ticket-rail">
+      <div class="rail-column">
+        <h2>Unclaimed</h2>
+        <div id="rail-unclaimed" class="rail-list"></div>
+      </div>
+      <div class="rail-column">
+        <h2>Preparing</h2>
+        <div id="rail-mine" class="rail-list"></div>
+      </div>
+      <div class="rail-column">
+        <h2>Served today</h2>
+        <div id="rail-served" class="rail-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ WAITER: ASSIGN MODAL ============ -->
+  <div id="assign-modal" class="modal hidden">
+    <div class="modal-card">
+      <button class="modal-close" id="assign-modal-close">&times;</button>
+      <h2>Order #<span id="assign-order-id"></span></h2>
+      <ul id="assign-items" class="ticket-items"></ul>
+      <form id="assign-form" class="stack-form">
+        <label>
+          Chef
+          <select id="assign-chef" required></select>
+        </label>
+        <label>
+          Bartender
+          <select id="assign-bartender" required></select>
+        </label>
+        <button type="submit" class="btn-primary">Confirm & start preparing</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Supabase client library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
