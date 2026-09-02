@@ -17,6 +17,19 @@ function showView(id) {
   document.getElementById(id).classList.remove("hidden");
   stopTrackingPoll();
   stopDashboardPoll();
+  updateTableBanner();
+}
+
+// ---------- QR code table banner ----------
+function updateTableBanner() {
+  const banner = document.getElementById("table-banner");
+  if (!banner) return;
+  if (state.tableNumber && state.currentRestaurant) {
+    banner.textContent = `Table ${state.tableNumber} · ${state.currentRestaurant.restaurant_name}`;
+    banner.classList.remove("hidden");
+  } else {
+    banner.classList.add("hidden");
+  }
 }
 
 function toast(message, isError = false) {
@@ -36,6 +49,7 @@ const state = {
   cart: {}, // menu_item_id -> { item, qty }
   currentOrderId: null,
   waiter: null, // { restaurant_id, waiter_id, waiter_name }
+  tableNumber: null, // set when the app is opened from a table's QR code
 };
 
 let trackingTimer = null;
@@ -72,6 +86,30 @@ async function init() {
   document.getElementById("waiter-refresh-btn").addEventListener("click", () => loadDashboard());
 
   await loadRestaurants();
+  handleQrParams();
+}
+
+// =========================================================
+// QR CODE HANDLING
+// A table's QR code points to index.html?r=RESTAURANT_ID&t=TABLE_NUMBER
+// Scanning it jumps straight past the restaurant picker and tags
+// every order from that visit with the table number.
+// =========================================================
+function handleQrParams() {
+  const params = new URLSearchParams(window.location.search);
+  const restaurantId = params.get("r");
+  const table = params.get("t");
+  if (!restaurantId) return;
+
+  const restaurant = state.restaurants.find((r) => r.restaurant_id === restaurantId);
+  if (!restaurant) {
+    toast("QR code restaurant was not recognized — pick your restaurant below.", true);
+    return;
+  }
+
+  state.currentRestaurant = restaurant;
+  state.tableNumber = table ? Number(table) : null;
+  showView("view-identify");
 }
 
 // =========================================================
@@ -125,6 +163,7 @@ function renderRestaurantGrid(list) {
     card.innerHTML = `<h3>${r.restaurant_name}</h3><p class="muted">${r.restaurant_location}</p>`;
     card.addEventListener("click", () => {
       state.currentRestaurant = r;
+      state.tableNumber = null; // manual pick, not from a table's QR code
       showView("view-identify");
     });
     container.appendChild(card);
@@ -274,6 +313,7 @@ function wireCartSubmit() {
         restaurant_id: state.currentRestaurant.restaurant_id,
         order_status: "Placed",
         waiting_time_minutes: waitingTime,
+        table_number: state.tableNumber,
       })
       .select()
       .single();
@@ -500,7 +540,9 @@ function renderOrderColumn(containerId, orders, kind) {
     card.className = "order-card " + kind;
     const total = order.order_item.reduce((sum, oi) => sum + Number(oi.subtotal), 0);
     card.innerHTML = `
-      <h4>Order #${order.order_id} — ${order.customer.customer_name}</h4>
+      <h4>Order #${order.order_id} — ${order.customer.customer_name}${
+        order.table_number ? " · Table " + order.table_number : ""
+      }</h4>
       <div class="order-meta">${orderItemsSummary(order)}</div>
       <div class="order-meta">${naira(total)} · waiting ${order.waiting_time_minutes} min</div>
       ${

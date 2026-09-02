@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chowly — Generate table QR codes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+<style>
+  .qr-setup { max-width: 640px; margin: 40px auto; padding: 0 24px; }
+  .qr-setup label { display: block; margin-bottom: 16px; font-weight: 600; }
+  .qr-setup input, .qr-setup select { display: block; width: 100%; margin-top: 6px; padding: 10px; font-size: 1rem; border: 1px solid var(--line); border-radius: var(--radius); }
+  .qr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding: 0 24px 60px; }
+  .qr-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; text-align: center; background: var(--white); }
+  .qr-card img { width: 100%; height: auto; }
+  .qr-card h4 { margin: 10px 0 4px; }
+  .qr-card .qr-url { font-size: 0.75rem; word-break: break-all; color: var(--muted); }
+  .no-print { max-width: 640px; margin: 0 auto 20px; padding: 0 24px; }
+  @media print {
+    .no-print, .topbar, .qr-setup { display: none !important; }
+    .qr-card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">Chowly</span>
+      <span class="brand-tag">QR code generator</span>
+    </div>
+  </header>
+
+  <section class="qr-setup">
+    <h1>Generate table QR codes</h1>
+    <p class="muted">Pick a restaurant and how many tables it has. Each QR code, when scanned, opens the menu with that table already selected.</p>
+
+    <label>
+      Restaurant
+      <select id="qr-restaurant"></select>
+    </label>
+
+    <label>
+      Number of tables
+      <input type="number" id="qr-table-count" min="1" max="200" value="10" />
+    </label>
+
+    <label>
+      App URL (where index.html is hosted — e.g. your GitHub Pages link)
+      <input type="text" id="qr-base-url" placeholder="https://your-username.github.io/chowly/" />
+    </label>
+
+    <button id="qr-generate-btn" class="btn-primary">Generate QR codes</button>
+  </section>
+
+  <div class="no-print">
+    <button id="qr-print-btn" class="btn-secondary hidden">Print this page</button>
+  </div>
+
+  <div id="qr-grid" class="qr-grid"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script>
+    async function loadRestaurantOptions() {
+      const sel = document.getElementById("qr-restaurant");
+      const { data, error } = await supabaseClient.from("restaurant").select("*").order("restaurant_name");
+      if (error) {
+        sel.innerHTML = `<option value="">Could not load restaurants</option>`;
+        return;
+      }
+      sel.innerHTML = data
+        .map((r) => `<option value="${r.restaurant_id}" data-name="${r.restaurant_name}">${r.restaurant_name} (${r.restaurant_location})</option>`)
+        .join("");
+    }
+
+    function guessBaseUrl() {
+      // Same folder as this page, swapping the filename for index.html
+      return window.location.href.replace(/generate-qr-codes\.html.*$/, "index.html");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadRestaurantOptions();
+      document.getElementById("qr-base-url").value = guessBaseUrl();
+
+      document.getElementById("qr-generate-btn").addEventListener("click", () => {
+        const sel = document.getElementById("qr-restaurant");
+        const restaurantId = sel.value;
+        const restaurantName = sel.selectedOptions[0] ? sel.selectedOptions[0].dataset.name : "";
+        const tableCount = Math.max(1, Math.min(200, Number(document.getElementById("qr-table-count").value) || 1));
+        let baseUrl = document.getElementById("qr-base-url").value.trim();
+        if (!baseUrl) baseUrl = guessBaseUrl();
+
+        const grid = document.getElementById("qr-grid");
+        grid.innerHTML = "";
+
+        for (let table = 1; table <= tableCount; table++) {
+          const url = `${baseUrl}?r=${encodeURIComponent(restaurantId)}&t=${table}`;
+          const qrImg = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}`;
+
+          const card = document.createElement("div");
+          card.className = "qr-card";
+          card.innerHTML = `
+            <img src="${qrImg}" alt="QR code for table ${table}" />
+            <h4>${restaurantName} — Table ${table}</h4>
+            <div class="qr-url">${url}</div>
+          `;
+          grid.appendChild(card);
+        }
+
+        document.getElementById("qr-print-btn").classList.remove("hidden");
+      });
+
+      document.getElementById("qr-print-btn").addEventListener("click", () => window.print());
+    });
+  </script>
+</body>
+</html>

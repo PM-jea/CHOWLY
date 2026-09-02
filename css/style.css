@@ -334,6 +334,16 @@ input:focus, select:focus, textarea:focus, button:focus-visible {
 /* =========================================================
    ORDER TRACKING
    ========================================================= */
+.table-banner {
+  background: var(--amber);
+  color: var(--charcoal);
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 8px 16px;
+  letter-spacing: 0.02em;
+}
+
 .status-pill {
   display: inline-block;
   background: var(--amber);
