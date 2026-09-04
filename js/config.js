@@ -1,9 +1,8 @@
 // =========================================================
 // CHOWLY — Supabase connection config
 // =========================================================
-// Fill in your own Supabase project's URL and public anon key below.
-// Find both under: Supabase Dashboard -> Project Settings -> API.
-const SUPABASE_URL = "PASTE_YOUR_SUPABASE_PROJECT_URL_HERE";
-const SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_PUBLIC_KEY_HERE";
+const SUPABASE_URL = "https://uemcwseynlkvrqbcfqis.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_tqbkqehrFZxczK-5Otlu2A_V0rJWPD-";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+

@@ -13,8 +13,14 @@
   <!-- ============ TOP BAR ============ -->
   <header class="topbar">
     <div class="brand">
+      <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="var(--ink)" stroke="var(--amber)" stroke-width="2.5"/>
+        <path d="M18 33c0 7.7 6.3 14 14 14s14-6.3 14-14" stroke="var(--paper)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <line x1="16" y1="33" x2="48" y2="33" stroke="var(--paper)" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M25 21c-2.2 2-2.2 4.2 0 6.2M32 19c-2.2 2-2.2 4.2 0 6.2M39 21c-2.2 2-2.2 4.2 0 6.2" stroke="var(--amber)" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
       <span class="brand-mark">Chowly</span>
-      <span class="brand-tag">table-side ordering</span>
+      <span class="brand-tag">Your Digital Table</span>
     </div>
     <div class="role-switch" role="tablist" aria-label="Switch role">
       <button class="role-btn active" data-role="customer" role="tab" aria-selected="true">I'm a Customer</button>
@@ -60,6 +66,10 @@
       <button class="back-link" data-back="view-identify">&larr; Back</button>
       <h1 id="menu-restaurant-name">Menu</h1>
       <p id="menu-restaurant-location" class="muted"></p>
+      <div class="menu-search">
+        <input type="search" id="menu-search-input" placeholder="Search for items" />
+      </div>
+      <div id="menu-category-pills" class="category-pills"></div>
     </section>
     <div class="menu-layout">
       <section class="menu-list" id="menu-list" aria-label="Menu items"></section>
@@ -76,6 +86,27 @@
       </aside>
     </div>
   </main>
+
+  <!-- ============ CUSTOMER: MENU ITEM DETAILS MODAL ============ -->
+  <div id="item-modal" class="modal hidden">
+    <div class="modal-card item-modal-card">
+      <button class="modal-close" id="item-modal-close">&times;</button>
+      <div class="item-modal-photo">
+        <img id="item-modal-img" src="" alt="" />
+      </div>
+      <div class="item-modal-body">
+        <h2 id="item-modal-name"></h2>
+        <p class="menu-item-price" id="item-modal-price"></p>
+        <p class="muted" id="item-modal-prep"></p>
+        <p id="item-modal-desc"></p>
+        <div class="item-modal-qty">
+          <button class="qty-btn" id="item-modal-minus">&minus;</button>
+          <span class="qty-value" id="item-modal-qty">0</span>
+          <button class="qty-btn" id="item-modal-plus">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ============ CUSTOMER: ORDER TRACKING ============ -->
   <main id="view-tracking" class="view hidden">

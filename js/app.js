@@ -50,6 +50,7 @@ const state = {
   currentOrderId: null,
   waiter: null, // { restaurant_id, waiter_id, waiter_name }
   tableNumber: null, // set when the app is opened from a table's QR code
+  menus: [], // raw menu+items data for the current restaurant, used by search/pills
 };
 
 let trackingTimer = null;
@@ -78,6 +79,7 @@ async function init() {
   wirePayButton();
   wireWaiterLoginForm();
   wireAssignModal();
+  wireItemModal();
   document.getElementById("refresh-status-btn").addEventListener("click", () => loadTracking(state.currentOrderId));
   document.getElementById("new-order-btn").addEventListener("click", () => {
     state.cart = {};
@@ -232,37 +234,124 @@ async function loadMenu() {
 }
 
 function renderMenu(menus) {
+  state.menus = menus; // keep raw data around for search/filter re-renders
+  renderCategoryPills(menus);
+  renderMenuItems(menus, "");
+
+  const searchInput = document.getElementById("menu-search-input");
+  searchInput.value = "";
+  searchInput.oninput = () => renderMenuItems(state.menus, searchInput.value.trim().toLowerCase());
+}
+
+function renderCategoryPills(menus) {
+  const container = document.getElementById("menu-category-pills");
+  const categories = menus.map((m) => m.menu_type + (m.menu_description ? " — " + m.menu_description : ""));
+  container.innerHTML = "";
+
+  const allPill = document.createElement("button");
+  allPill.className = "pill active";
+  allPill.textContent = "All";
+  allPill.addEventListener("click", () => setActivePill(allPill, null));
+  container.appendChild(allPill);
+
+  categories.forEach((label, i) => {
+    const pill = document.createElement("button");
+    pill.className = "pill";
+    pill.textContent = label;
+    pill.addEventListener("click", () => setActivePill(pill, "cat-" + i));
+    container.appendChild(pill);
+  });
+}
+
+function setActivePill(pill, targetId) {
+  document.querySelectorAll("#menu-category-pills .pill").forEach((p) => p.classList.remove("active"));
+  pill.classList.add("active");
+  if (targetId) {
+    const el = document.getElementById(targetId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    document.getElementById("menu-list").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function renderMenuItems(menus, query) {
   const container = document.getElementById("menu-list");
   container.innerHTML = "";
 
-  menus.forEach((menu) => {
+  menus.forEach((menu, i) => {
+    const items = (menu.menu_item || []).filter(
+      (item) => !query || item.item_name.toLowerCase().includes(query)
+    );
+    if (query && items.length === 0) return; // hide empty categories while searching
+
     const heading = document.createElement("div");
     heading.className = "menu-category";
+    heading.id = "cat-" + i;
     heading.textContent = menu.menu_type + (menu.menu_description ? " — " + menu.menu_description : "");
     container.appendChild(heading);
 
-    (menu.menu_item || []).forEach((item) => {
-      const row = document.createElement("div");
-      row.className = "menu-item-row";
-      row.innerHTML = `
+    const grid = document.createElement("div");
+    grid.className = "menu-item-grid";
+    container.appendChild(grid);
+
+    items.forEach((item) => {
+      const card = document.createElement("div");
+      card.className = "menu-item-card";
+      card.innerHTML = `
+        <div class="menu-item-photo">
+          ${
+            item.item_image_url
+              ? `<img src="${item.item_image_url}" alt="${item.item_name}" loading="lazy" />`
+              : `<div class="menu-item-photo-fallback">🍽</div>`
+          }
+        </div>
         <div class="menu-item-info">
           <h4>${item.item_name}</h4>
+          <p class="menu-item-price">${naira(item.item_price)}</p>
           <p class="menu-item-desc">${item.item_description || ""}</p>
-          <p class="menu-item-meta">~${item.prep_time_minutes} min</p>
         </div>
-        <div class="menu-item-action">
-          <span class="menu-item-price">${naira(item.item_price)}</span>
-          <button class="qty-btn" data-action="minus" data-id="${item.menu_item_id}">&minus;</button>
-          <span class="qty-value" id="qty-${item.menu_item_id}">0</span>
-          <button class="qty-btn" data-action="plus" data-id="${item.menu_item_id}">+</button>
-        </div>
+        <button class="btn-secondary details-btn">Details</button>
       `;
-      container.appendChild(row);
-
-      row.querySelector('[data-action="plus"]').addEventListener("click", () => changeQty(item, 1));
-      row.querySelector('[data-action="minus"]').addEventListener("click", () => changeQty(item, -1));
+      card.querySelector(".details-btn").addEventListener("click", () => openItemModal(item));
+      grid.appendChild(card);
     });
   });
+}
+
+// =========================================================
+// CUSTOMER: MENU ITEM DETAILS MODAL
+// =========================================================
+let modalItem = null;
+
+function wireItemModal() {
+  document.getElementById("item-modal-close").addEventListener("click", closeItemModal);
+  document.getElementById("item-modal-minus").addEventListener("click", () => bumpModalQty(-1));
+  document.getElementById("item-modal-plus").addEventListener("click", () => bumpModalQty(1));
+}
+
+function openItemModal(item) {
+  modalItem = item;
+  document.getElementById("item-modal-name").textContent = item.item_name;
+  document.getElementById("item-modal-price").textContent = naira(item.item_price);
+  document.getElementById("item-modal-prep").textContent = "~" + item.prep_time_minutes + " min";
+  document.getElementById("item-modal-desc").textContent = item.item_description || "";
+  const img = document.getElementById("item-modal-img");
+  img.src = item.item_image_url || "";
+  img.alt = item.item_name;
+  img.style.display = item.item_image_url ? "block" : "none";
+  document.getElementById("item-modal-qty").textContent = (state.cart[item.menu_item_id] || {}).qty || 0;
+  document.getElementById("item-modal").classList.remove("hidden");
+}
+
+function closeItemModal() {
+  document.getElementById("item-modal").classList.add("hidden");
+  modalItem = null;
+}
+
+function bumpModalQty(delta) {
+  if (!modalItem) return;
+  changeQty(modalItem, delta);
+  document.getElementById("item-modal-qty").textContent = (state.cart[modalItem.menu_item_id] || {}).qty || 0;
 }
 
 function changeQty(item, delta) {
@@ -273,8 +362,6 @@ function changeQty(item, delta) {
   } else {
     state.cart[item.menu_item_id] = line;
   }
-  const qtyEl = document.getElementById("qty-" + item.menu_item_id);
-  if (qtyEl) qtyEl.textContent = line.qty || 0;
   updateCartUI();
 }
 
