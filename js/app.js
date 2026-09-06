@@ -486,7 +486,7 @@ async function loadTracking(orderId) {
     payBox.querySelector("#payment-done").classList.remove("hidden");
   } else {
     payBox.dataset.total = total;
-    payBox.querySelector(".demo-flag").textContent = "Demo payment only — no real money is charged.";
+    payBox.querySelector(".demo-flag").textContent = "Card payments are processed securely by Paystack. Cash/Transfer are just logged for the waiter.";
     payBox.querySelector("#payment-pending").classList.remove("hidden");
   }
 }
@@ -527,22 +527,64 @@ function wirePayButton() {
     const total = Number(payBox.dataset.total || 0);
     const method = document.getElementById("payment-method").value;
 
-    const { error } = await supabaseClient.from("payment").insert({
-      order_id: state.currentOrderId,
-      payment_amount: total,
-      payment_method: method,
-      payment_status: "Paid",
-    });
-
-    if (error) {
-      toast("Payment could not be recorded: " + error.message, true);
-      return;
+    if (method === "Card") {
+      payWithPaystack(total);
+    } else {
+      await recordPayment(total, method, null);
     }
-
-    payBox.querySelector("#payment-pending").classList.add("hidden");
-    payBox.querySelector("#payment-done").classList.remove("hidden");
-    toast("Demo payment recorded.");
   });
+}
+
+// Cash/Transfer: recorded directly, no external processor involved.
+// Card: goes through Paystack's popup first; recordPayment() only runs
+// after Paystack confirms the transaction succeeded.
+async function recordPayment(amount, method, reference) {
+  const payBox = document.getElementById("payment-box");
+  const { error } = await supabaseClient.from("payment").insert({
+    order_id: state.currentOrderId,
+    payment_amount: amount,
+    payment_method: method,
+    payment_status: "Paid",
+    payment_reference: reference,
+  });
+
+  if (error) {
+    toast("Payment could not be recorded: " + error.message, true);
+    return;
+  }
+
+  payBox.querySelector("#payment-pending").classList.add("hidden");
+  payBox.querySelector("#payment-done").classList.remove("hidden");
+  toast(reference ? "Payment successful." : "Payment recorded.");
+}
+
+function payWithPaystack(total) {
+  if (!PAYSTACK_PUBLIC_KEY || PAYSTACK_PUBLIC_KEY.startsWith("PASTE_")) {
+    toast("Card payments aren't set up yet — add your Paystack public key to config.js.", true);
+    return;
+  }
+
+  const customer = state.currentCustomer;
+  // Paystack requires an email; customers only give us a phone number,
+  // so a synthetic one tied to their phone keeps each customer distinct.
+  const syntheticEmail = customer.customer_phone.replace(/\D/g, "") + "@chowly-guest.com";
+
+  const handler = PaystackPop.setup({
+    key: PAYSTACK_PUBLIC_KEY,
+    email: syntheticEmail,
+    amount: Math.round(total * 100), // Paystack expects kobo, not naira
+    currency: "NGN",
+    ref: "CHOWLY-" + state.currentOrderId + "-" + Date.now(),
+    metadata: { order_id: state.currentOrderId, customer_name: customer.customer_name },
+    callback: function (response) {
+      recordPayment(total, "Card", response.reference);
+    },
+    onClose: function () {
+      toast("Payment window closed — nothing was charged.");
+    },
+  });
+
+  handler.openIframe();
 }
 
 // =========================================================

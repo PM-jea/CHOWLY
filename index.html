@@ -156,7 +156,7 @@
 
       <div class="payment-box" id="payment-box">
         <h3>Payment</h3>
-        <p class="muted demo-flag">Demo payment only — no real money is charged.</p>
+        <p class="muted demo-flag">Card payments are processed securely by Paystack. Cash/Transfer are just logged for the waiter.</p>
         <div id="payment-pending">
           <label>
             Payment method
@@ -166,7 +166,7 @@
               <option value="Transfer">Transfer</option>
             </select>
           </label>
-          <button id="pay-btn" class="btn-primary">Pay now (demo)</button>
+          <button id="pay-btn" class="btn-primary">Pay now</button>
         </div>
         <p id="payment-done" class="hidden confirm-msg">Payment recorded. Thanks for dining with Chowly!</p>
       </div>
@@ -241,6 +241,8 @@
 
   <!-- Supabase client library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Paystack inline checkout (real card payments) -->
+  <script src="https://js.paystack.co/v1/inline.js"></script>
   <script src="js/config.js"></script>
   <script src="js/app.js"></script>
 </body>
